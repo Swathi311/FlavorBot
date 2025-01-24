@@ -4,28 +4,50 @@ import SendIcon from '@mui/icons-material/Send';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
+import axios from 'axios';
 
 const App = () => {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
-  const [anchorEl, setAnchorEl] = useState(null); // For emoji picker
+  const [anchorEl, setAnchorEl] = useState(null); 
   const isMobile = useMediaQuery('(max-width:600px)');
 
-  const handleSend = () => {
-    if (userInput.trim() === '') return;
-
-    const newMessage = { text: userInput, sender: 'user' };
+  const handleSend = async () => {
+    if (userInput.trim() === "") return;
+  
+    // Add user input to the messages array
+    const newMessage = { text: userInput, sender: "user" };
     setMessages([...messages, newMessage]);
-
-    const botMessage = {
-      text: `I see you said: "${userInput}". How can I assist further?`,
-      sender: 'bot',
-    };
-
-    setTimeout(() => setMessages((prev) => [...prev, botMessage]), 1000);
-    setUserInput('');
+  
+    try {
+      // Send the userInput to the Flask backend
+      const response = await axios.post("http://localhost:8000/process", {
+        text: userInput, // Send userInput as part of the POST request
+      });
+  
+      // Get the response from the backend
+      const botResponse = response.data.text; // Assuming backend echoes back the query
+      const botMessage = {
+        text: botResponse,
+        sender: "bot",
+      };
+  
+      // Add the bot's response to the chat
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error processing text:", error);
+      const botMessage = {
+        text: "Sorry, there was an error processing your request.",
+        sender: "bot",
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    }
+  
+    // Clear the input field
+    setUserInput("");
   };
-
+  
+  
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSend();
@@ -34,7 +56,7 @@ const App = () => {
 
   const handleEmojiSelect = (emoji) => {
     setUserInput((prev) => prev + emoji.native);
-    setAnchorEl(null); // Close the emoji picker after selection
+    setAnchorEl(null); 
   };
 
   const handleOpenEmojiDialog = (event) => {
@@ -53,7 +75,7 @@ const App = () => {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        bgcolor: '#2c2c2c', // Dark grey background
+        bgcolor: '#2c2c2c', 
         alignItems: 'center',
         px: isMobile ? 1 : 2,
       }}
@@ -61,10 +83,10 @@ const App = () => {
       {/* Title Section */}
       <Box
         sx={{
-          width: '100%', // Full-width title section
-          textAlign: 'left', // Left alignment
+          width: '100%',
+          textAlign: 'left',
           p: isMobile ? 1.5 : 2,
-          bgcolor: '#2c2c2c', // Same as screen background
+          bgcolor: '#2c2c2c', 
         }}
       >
         <Typography
@@ -95,8 +117,8 @@ const App = () => {
           flexGrow: 1,
           overflowY: 'auto',
           p: 2,
-          border: '1px solid #444', // Adjusted for dark theme
-          bgcolor: '#3a3a3a', // Slightly lighter grey for chat background
+          border: '1px solid #444', 
+          bgcolor: '#3a3a3a', 
           boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
           width: isMobile ? '95%' : '60%',
           mt: isMobile ? 1 : 2,
@@ -134,7 +156,7 @@ const App = () => {
           display: 'flex',
           alignItems: 'center',
           borderRadius: '20px',
-          bgcolor: '#f4f4f4', // Same color for input section
+          bgcolor: '#f4f4f4', 
           p: 1,
           width: isMobile ? '95%' : '60%',
           mt: isMobile ? 0.5 : 1.5,
