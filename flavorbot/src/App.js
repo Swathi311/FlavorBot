@@ -15,24 +15,23 @@ const App = () => {
   const handleSend = async () => {
     if (userInput.trim() === "") return;
   
-    // Add user input to the messages array
+
     const newMessage = { text: userInput, sender: "user" };
     setMessages([...messages, newMessage]);
   
     try {
-      // Send the userInput to the Flask backend
+  
       const response = await axios.post("http://localhost:8000/process", {
-        text: userInput, // Send userInput as part of the POST request
+        text: userInput, 
       });
   
-      // Get the response from the backend
-      const botResponse = response.data.text; // Assuming backend echoes back the query
+
+      const botResponse = response.data.text; 
       const botMessage = {
         text: botResponse,
         sender: "bot",
       };
-  
-      // Add the bot's response to the chat
+
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error("Error processing text:", error);
