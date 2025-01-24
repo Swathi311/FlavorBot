@@ -2,10 +2,9 @@ const admin = require("firebase-admin");
 const csv = require("csv-parser");
 const fs = require("fs");
 
-// Firebase service account
+
 const serviceAccount = require("../src/firebase/flavorbot-8ace7-firebase-adminsdk-w09ei-3f1a901c50.json");
 
-// Initialize Firebase Admin
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });

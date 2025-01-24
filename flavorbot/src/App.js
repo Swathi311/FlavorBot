@@ -4,6 +4,7 @@ import SendIcon from '@mui/icons-material/Send';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
+import axios from 'axios';
 
 const App = () => {
   const [messages, setMessages] = useState([]);
@@ -11,21 +12,42 @@ const App = () => {
   const [anchorEl, setAnchorEl] = useState(null); 
   const isMobile = useMediaQuery('(max-width:600px)');
 
-  const handleSend = () => {
-    if (userInput.trim() === '') return;
-
-    const newMessage = { text: userInput, sender: 'user' };
+  const handleSend = async () => {
+    if (userInput.trim() === "") return;
+  
+    // Add user input to the messages array
+    const newMessage = { text: userInput, sender: "user" };
     setMessages([...messages, newMessage]);
-
-    const botMessage = {
-      text: `I see you said: "${userInput}". How can I assist further?`,
-      sender: 'bot',
-    };
-
-    setTimeout(() => setMessages((prev) => [...prev, botMessage]), 1000);
-    setUserInput('');
+  
+    try {
+      // Send the userInput to the Flask backend
+      const response = await axios.post("http://localhost:8000/process", {
+        text: userInput, // Send userInput as part of the POST request
+      });
+  
+      // Get the response from the backend
+      const botResponse = response.data.text; // Assuming backend echoes back the query
+      const botMessage = {
+        text: botResponse,
+        sender: "bot",
+      };
+  
+      // Add the bot's response to the chat
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error("Error processing text:", error);
+      const botMessage = {
+        text: "Sorry, there was an error processing your request.",
+        sender: "bot",
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    }
+  
+    // Clear the input field
+    setUserInput("");
   };
-
+  
+  
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSend();
