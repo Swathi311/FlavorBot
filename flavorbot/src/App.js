@@ -15,18 +15,17 @@ const App = () => {
   const handleSend = async () => {
     if (userInput.trim() === "") return;
   
-
     const newMessage = { text: userInput, sender: "user" };
     setMessages([...messages, newMessage]);
   
     try {
-  
+      // Send the user input to the backend
       const response = await axios.post("http://localhost:8000/process", {
         text: userInput, 
       });
-  
 
-      const botResponse = response.data.text; 
+      // Get the response from the backend
+      const botResponse = response.data.response; 
       const botMessage = {
         text: botResponse,
         sender: "bot",
@@ -45,7 +44,6 @@ const App = () => {
     // Clear the input field
     setUserInput("");
   };
-  
   
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -122,6 +120,19 @@ const App = () => {
           width: isMobile ? '95%' : '60%',
           mt: isMobile ? 1 : 2,
           borderRadius: '16px',
+          
+          // Custom scrollbar styles
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#6c6c6c', // Dark gray for thumb
+            borderRadius: '10px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: '#2c2c2c', // Dark background for track
+            borderRadius: '10px',
+          },
         }}
       >
         {messages.map((msg, index) => (
@@ -155,7 +166,7 @@ const App = () => {
           display: 'flex',
           alignItems: 'center',
           borderRadius: '20px',
-          bgcolor: '#f4f4f4', 
+          bgcolor: '#3a3a3a',  // Darker background for the query typing box
           p: 1,
           width: isMobile ? '95%' : '60%',
           mt: isMobile ? 0.5 : 1.5,
@@ -175,22 +186,39 @@ const App = () => {
             borderRadius: '20px',
             padding: isMobile ? '8px 12px' : '10px 15px',
             fontSize: isMobile ? '14px' : '16px',
-            backgroundColor: '#D3D3D3',
-            color: '#464748',
+            backgroundColor: '#5a5a5a',  // Darker shade for input
+            color: '#ffffff',  // Text color to stand out in dark mode
           }}
         />
 
         {/* Emoji Button (Only for Desktop Screens) */}
         {!isMobile && (
           <IconButton
-            sx={{ color: '#ddd', ml: 1 }}
+            sx={{
+              color: '#ddd', 
+              backgroundColor: '#444',  // Darker button background
+              ml: 1,
+              '&:hover': {
+                backgroundColor: '#555',
+              }
+            }}
             onClick={handleOpenEmojiDialog}
           >
             <EmojiEmotionsIcon />
           </IconButton>
         )}
 
-        <IconButton sx={{ color: '#ddd', ml: 1 }} onClick={handleSend}>
+        <IconButton
+          sx={{
+            color: '#ddd', 
+            backgroundColor: '#444',  // Darker button background
+            ml: 1,
+            '&:hover': {
+              backgroundColor: '#555',
+            }
+          }}
+          onClick={handleSend}
+        >
           <SendIcon />
         </IconButton>
       </Box>
@@ -216,4 +244,3 @@ const App = () => {
 };
 
 export default App;
-//checking branch

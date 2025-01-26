@@ -34,12 +34,17 @@ def process_text():
         doc = nlp(user_input)
         print(f"Processed text: {doc}")
 
-        # Extract entities
-        entities = [{"text": ent.text, "label": ent.label_} for ent in doc.ents]
-        print(f"Extracted entities: {entities}")
+        # Extract ingredients
+        ingredients = [{"text": ent.text, "label": ent.label_} for ent in doc.ents if ent.label_ == "INGREDIENT"]
+        print(f"Extracted ingredients: {ingredients}")
 
-        # Return the extracted entities as the response
-        return jsonify({"entities": entities})
+        # Check if ingredients were found and return response
+        if ingredients:
+            response_text = f"Here's the recipe with the ingredients: {', '.join([ing['text'] for ing in ingredients])}"
+        else:
+            response_text = "Sorry, no ingredients detected in your query. Could you please specify ingredients?"
+
+        return jsonify({"response": response_text, "entities": ingredients})
 
     except Exception as e:
         # Log any errors
@@ -48,3 +53,6 @@ def process_text():
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
+
+
+

@@ -1,78 +1,99 @@
 import spacy
 from spacy.training.example import Example
-from spacy.training import offsets_to_biluo_tags
-from spacy.lang.en import English
 
-# Sample training data
+
 TRAIN_DATA = [
-    ("Paneer Makhana Gulgule Chaat Recipe is a chaat made with paneer and makhana.", {"entities": [(0, 6, "INGREDIENT"), (27, 33, "INGREDIENT")]}),
-    ("The recipe requires sugar, milk, and almonds.", {"entities": [(22, 27, "INGREDIENT"), (29, 33, "INGREDIENT"), (39, 46, "INGREDIENT")]}),
-    ("Prepare the dish by adding tomatoes, onions, and garlic.", {"entities": [(31, 38, "INGREDIENT"), (40, 46, "INGREDIENT"), (49, 55, "INGREDIENT")]}),
-    ("For a dessert, use chocolate, cream, and butter.", {"entities": [(18, 26, "INGREDIENT"), (28, 33, "INGREDIENT"), (36, 42, "INGREDIENT")]}),
+    # Basic ingredient mentions
+    ("Do you have a recipe with Paneer and Spinach?", {"entities": [(26, 32, "INGREDIENT"), (37, 44, "INGREDIENT")]}),
+    ("I need a dish that uses Chicken and Garlic.", {"entities": [(24, 31, "INGREDIENT"), (36, 42, "INGREDIENT")]}),
+
+    # Substitutions and alternative suggestions
+    ("What can I use instead of Butter for baking?", {"entities": [(26, 32, "INGREDIENT")]}),
+    ("Can I replace Eggs with Bananas in this recipe?", {"entities": [(14, 18, "INGREDIENT"), (24, 31, "INGREDIENT")]}),
+    ("Suggest a dairy-free alternative to Milk.", {"entities": [(35, 39, "INGREDIENT")]}),
+
+    # Recipe searches
+    ("Show me a recipe for Chocolate Cake.", {"entities": [(19, 28, "INGREDIENT")]}),
+    ("Find recipes with Potatoes and Peas.", {"entities": [(18, 26, "INGREDIENT"), (31, 35, "INGREDIENT")]}),
+    ("Can you give me a Mango smoothie recipe?", {"entities": [(20, 25, "INGREDIENT")]}),
+
+    # Complex ingredient mentions in context
+    ("Can you give me a vegetarian recipe with Lentils and Tofu?", {"entities": [(41, 48, "INGREDIENT"), (53, 57, "INGREDIENT")]}),
+    ("What can I make with Strawberries, Blueberries, and Cream?", {"entities": [(19, 31, "INGREDIENT"), (33, 44, "INGREDIENT"), (50, 55, "INGREDIENT")]}),
+    ("Do you know a recipe that combines Mushrooms and Broccoli?", {"entities": [(32, 41, "INGREDIENT"), (46, 54, "INGREDIENT")]}),
+
+    # Instructions with ingredients
+    ("Add Sugar and Butter to the mixture.", {"entities": [(5, 10, "INGREDIENT"), (15, 21, "INGREDIENT")]}),
+    ("Marinate the Chicken with Yogurt and Spices.", {"entities": [(15, 22, "INGREDIENT"), (28, 34, "INGREDIENT")]}),
+    ("Stir in the Tomato paste and season with Salt.", {"entities": [(12, 18, "INGREDIENT"), (37, 41, "INGREDIENT")]}),
+
+    # Negative examples (to avoid overfitting)
+    ("Can you recommend a non-stick pan?", {"entities": []}),
+    ("What's the best way to sharpen a knife?", {"entities": []}),
+    ("Do I need a specific kind of skillet for this dish?", {"entities": []}),
+
+    # Regional cuisine examples
+    ("How do I make a South Indian recipe with Tamarind?", {"entities": [(40, 48, "INGREDIENT")]}),
+    ("What ingredients are needed for a Punjabi Chole?", {"entities": [(44, 49, "INGREDIENT")]}),
+    ("Can you suggest an Italian pasta recipe with Basil?", {"entities": [(45, 50, "INGREDIENT")]}),
+
+    # Questions about cooking techniques
+    ("Can I sauté Onions in Olive oil?", {"entities": [(10, 16, "INGREDIENT"), (20, 29, "INGREDIENT")]}),
+    ("Is it okay to fry Potatoes in Coconut oil?", {"entities": [(19, 27, "INGREDIENT"), (31, 42, "INGREDIENT")]}),
+    ("What spice blend works best for grilling Lamb?", {"entities": [(42, 46, "INGREDIENT")]}),
+
+    # Substitutes or dietary concerns
+    ("What's a gluten-free substitute for Wheat Flour?", {"entities": [(33, 44, "INGREDIENT")]}),
+    ("I need a sugar-free recipe for people avoiding Sugar.", {"entities": [(53, 58, "INGREDIENT")]}),
+    ("What can I use instead of Butter to make it vegan?", {"entities": [(26, 32, "INGREDIENT")]}),
+
+    # Desserts and baked goods
+    ("Can you give me a recipe for Carrot Cake?", {"entities": [(28, 33, "INGREDIENT")]}),
+    ("How do I make a Cheesecake with Cream Cheese?", {"entities": [(34, 40, "INGREDIENT"), (46, 57, "INGREDIENT")]}),
+    ("What is the best way to bake with Almond Flour?", {"entities": [(34, 46, "INGREDIENT")]}),
+
+    # Drinks and smoothies
+    ("Give me a smoothie recipe with Bananas and Honey.", {"entities": [(31, 38, "INGREDIENT"), (43, 48, "INGREDIENT")]}),
+    ("How do I prepare a Green Tea latte?", {"entities": [(19, 28, "INGREDIENT")]}),
+    ("What are the ingredients for a Mango Lassi?", {"entities": [(36, 41, "INGREDIENT")]}),
 ]
 
 
-# Function to clean and validate training data
-def clean_training_data(data):
-    """Removes overlapping or misaligned entities from training data."""
-    cleaned_data = []
-    nlp = English()  # Use spaCy's English model for tokenization
-    for text, annotations in data:
-        try:
-            doc = nlp.make_doc(text)
-            # Validate entity alignment
-            biluo_tags = offsets_to_biluo_tags(doc, annotations["entities"])
-            valid_entities = annotations["entities"]
-        except ValueError as e:
-            print(f"Skipping invalid data: {text} - {annotations} ({e})")
-            valid_entities = []  # Skip problematic entities
-        if valid_entities:
-            cleaned_data.append((text, {"entities": valid_entities}))
-    print("Cleaned training data:", cleaned_data)
-    return cleaned_data
 
-# Clean the training data
-TRAIN_DATA = clean_training_data(TRAIN_DATA)
 
-# Function to train the spaCy NER model
-def train_model(data, model=None, output_dir=None, n_iter=30):
-    """Train an NER model using spaCy."""
-    # Load an existing model or create a blank model
-    if model is not None:
-        nlp = spacy.load(model)  # Load existing spaCy model
-        print(f"Loaded model '{model}'")
-    else:
-        nlp = spacy.blank("en")  # Create blank English model
-        print("Created blank 'en' model")
+# Create a blank NLP model
+nlp = spacy.blank("en")
 
-    # Add NER pipeline if not already present
-    if "ner" not in nlp.pipe_names:
-        ner = nlp.add_pipe("ner")
-    else:
-        ner = nlp.get_pipe("ner")
+# Add the NER pipeline if not already added
+if "ner" not in nlp.pipe_names:
+    ner = nlp.add_pipe("ner", last=True)
+else:
+    ner = nlp.get_pipe("ner")
 
-    # Add labels to the NER pipeline
-    for _, annotations in data:
-        for ent in annotations["entities"]:
-            ner.add_label(ent[2])
+# Add labels to the NER pipeline
+for _, annotations in TRAIN_DATA:
+    for ent in annotations.get("entities"):
+        ner.add_label(ent[2])  # Add the label (e.g., "INGREDIENT")
 
-    # Train the model
-    optimizer = nlp.begin_training()
-    for i in range(n_iter):
-        print(f"Iteration {i + 1}/{n_iter}")
-        losses = {}
-        for text, annotations in data:
+# Create the optimizer
+optimizer = nlp.begin_training()
+
+# Number of iterations
+n_iter = 30
+
+# Training loop
+for itn in range(n_iter):
+    print(f"Iteration {itn + 1}/{n_iter}")
+    losses = {}
+
+    for batch in spacy.util.minibatch(TRAIN_DATA, size=2):
+        for text, annotations in batch:
             doc = nlp.make_doc(text)
             example = Example.from_dict(doc, annotations)
-            nlp.update([example], drop=0.5, losses=losses)
-        print(f"Losses: {losses}")
+            nlp.update([example], losses=losses, drop=0.1)
+    print(losses)
 
-    # Save the model to the specified output directory
-    if output_dir is not None:
-        nlp.to_disk(output_dir)
-        print(f"Model saved to {output_dir}")
 
-# Train the model and save it
-if __name__ == "__main__":
-    OUTPUT_DIR = "./ner_model"  # Path to save the trained model
-    train_model(TRAIN_DATA, model=None, output_dir=OUTPUT_DIR, n_iter=10)
+# Save the trained model
+nlp.to_disk("./ner_model")
+print("Model saved to ./ner_model")
