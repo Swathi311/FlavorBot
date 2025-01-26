@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
 import spacy
+from flask_cors import CORS  # Import flask-cors for handling CORS
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Load the trained spaCy model
 try:

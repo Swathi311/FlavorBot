@@ -5,16 +5,12 @@ from spacy.lang.en import English
 
 # Sample training data
 TRAIN_DATA = [
-    (
-        "Paneer Makhana Gulgule Chaat Recipe is a chaat made with paneer and makhana.",
-        {"entities": [(0, 6, "INGREDIENT"), (27, 33, "INGREDIENT")]}
-    ),
-    (
-        "The recipe requires sugar, milk, and almonds.",
-        {"entities": [(22, 27, "INGREDIENT"), (29, 33, "INGREDIENT"), (39, 46, "INGREDIENT")]}
-    ),
-    # Add more training data
+    ("Paneer Makhana Gulgule Chaat Recipe is a chaat made with paneer and makhana.", {"entities": [(0, 6, "INGREDIENT"), (27, 33, "INGREDIENT")]}),
+    ("The recipe requires sugar, milk, and almonds.", {"entities": [(22, 27, "INGREDIENT"), (29, 33, "INGREDIENT"), (39, 46, "INGREDIENT")]}),
+    ("Prepare the dish by adding tomatoes, onions, and garlic.", {"entities": [(31, 38, "INGREDIENT"), (40, 46, "INGREDIENT"), (49, 55, "INGREDIENT")]}),
+    ("For a dessert, use chocolate, cream, and butter.", {"entities": [(18, 26, "INGREDIENT"), (28, 33, "INGREDIENT"), (36, 42, "INGREDIENT")]}),
 ]
+
 
 # Function to clean and validate training data
 def clean_training_data(data):
@@ -32,13 +28,14 @@ def clean_training_data(data):
             valid_entities = []  # Skip problematic entities
         if valid_entities:
             cleaned_data.append((text, {"entities": valid_entities}))
+    print("Cleaned training data:", cleaned_data)
     return cleaned_data
 
 # Clean the training data
 TRAIN_DATA = clean_training_data(TRAIN_DATA)
 
 # Function to train the spaCy NER model
-def train_model(data, model=None, output_dir=None, n_iter=10):
+def train_model(data, model=None, output_dir=None, n_iter=30):
     """Train an NER model using spaCy."""
     # Load an existing model or create a blank model
     if model is not None:

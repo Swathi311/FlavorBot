@@ -3,7 +3,7 @@ const csv = require("csv-parser");
 const fs = require("fs");
 
 
-const serviceAccount = require("../src/firebase/flavorbot-8ace7-firebase-adminsdk-w09ei-3f1a901c50.json");
+const serviceAccount = require("../src/firebase/flavorbot-8ace7-firebase-adminsdk-w09ei-2f34c6342d.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
