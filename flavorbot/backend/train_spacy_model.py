@@ -1,8 +1,22 @@
 import spacy
 from spacy.training.example import Example
+import fetch_training_data
 
+print(fetch_training_data.unique_ingredients)
 
-TRAIN_DATA = [
+'''TRAIN_DATA = []
+
+for ingredient in unique_ingredients:
+    TRAIN_DATA.append((
+        f"Show me recipes with {ingredient}",
+        {"entities": [(19, 19 + len(ingredient), "INGREDIENT")]}
+    ))
+    TRAIN_DATA.append((
+        f"I want a dish with {ingredient}",
+        {"entities": [(20, 20 + len(ingredient), "INGREDIENT")]}
+    ))'''
+
+'''TRAIN_DATA = [
     # Basic ingredient mentions
     ("Do you have a recipe with Paneer and Spinach?", {"entities": [(26, 32, "INGREDIENT"), (37, 44, "INGREDIENT")]}),
     ("I need a dish that uses Chicken and Garlic.", {"entities": [(24, 31, "INGREDIENT"), (36, 42, "INGREDIENT")]}),
@@ -56,7 +70,7 @@ TRAIN_DATA = [
     ("Give me a smoothie recipe with Bananas and Honey.", {"entities": [(31, 38, "INGREDIENT"), (43, 48, "INGREDIENT")]}),
     ("How do I prepare a Green Tea latte?", {"entities": [(19, 28, "INGREDIENT")]}),
     ("What are the ingredients for a Mango Lassi?", {"entities": [(36, 41, "INGREDIENT")]}),
-]
+]'''
 
 
 

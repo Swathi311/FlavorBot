@@ -19,18 +19,15 @@ const App = () => {
     setMessages([...messages, newMessage]);
   
     try {
-      // Send the user input to the backend
-      const response = await axios.post("http://localhost:8000/process", {
-        text: userInput, 
-      });
-
-      // Get the response from the backend
-      const botResponse = response.data.response; 
-      const botMessage = {
-        text: botResponse,
-        sender: "bot",
-      };
-
+      const response = await axios.post("http://localhost:8000/process", { text: userInput });
+      const responseRecipes = response.data.recipes; // Response format: { ingredient: [recipes] }
+  
+      let botResponse = "Here are the recipes I found:\n";
+      for (const [ingredient, recipes] of Object.entries(responseRecipes)) {
+        botResponse += `For ${ingredient}: ${recipes.length > 0 ? recipes.join(", ") : "No recipes found."}\n`;
+      }
+  
+      const botMessage = { text: botResponse.trim(), sender: "bot" };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error("Error processing text:", error);
@@ -41,7 +38,6 @@ const App = () => {
       setMessages((prev) => [...prev, botMessage]);
     }
   
-    // Clear the input field
     setUserInput("");
   };
   

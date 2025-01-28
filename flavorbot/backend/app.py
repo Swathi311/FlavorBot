@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import spacy
 from flask_cors import CORS  # Import flask-cors for handling CORS
+from fetch_training_data import ingredient_to_recipes
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -17,39 +18,32 @@ except Exception as e:
 @app.route('/process', methods=['POST'])
 def process_text():
     try:
-        # Get the JSON payload from the POST request
+        # Get the JSON payload
         data = request.get_json()
-        print(f"Received data: {data}")
-
-        # Extract the user input text
         user_input = data.get('text', '')
-        print(f"User input: {user_input}")
 
-        # Check if the model is loaded
         if not nlp:
-            print("NER model not loaded")
             return jsonify({"error": "NER model not loaded"}), 500
 
-        # Process the text using the spaCy model
+        # Process the text
         doc = nlp(user_input)
-        print(f"Processed text: {doc}")
+        entities = [{"text": ent.text.lower(), "label": ent.label_} for ent in doc.ents]
 
-        # Extract ingredients
-        ingredients = [{"text": ent.text, "label": ent.label_} for ent in doc.ents if ent.label_ == "INGREDIENT"]
-        print(f"Extracted ingredients: {ingredients}")
+        # Fetch recipes for the detected ingredients
+        detected_ingredients = [ent['text'] for ent in entities if ent['label'] == "INGREDIENT"]
+        response_recipes = {}
 
-        # Check if ingredients were found and return response
-        if ingredients:
-            response_text = f"Here's the recipe with the ingredients: {', '.join([ing['text'] for ing in ingredients])}"
-        else:
-            response_text = "Sorry, no ingredients detected in your query. Could you please specify ingredients?"
+        for ingredient in detected_ingredients:
+            recipes = ingredient_to_recipes.get(ingredient, [])
+            response_recipes[ingredient] = recipes
 
-        return jsonify({"response": response_text, "entities": ingredients})
+        # Response to frontend
+        return jsonify({"recipes": response_recipes})
 
     except Exception as e:
-        # Log any errors
-        print(f"Error in /process: {e}")
-        return jsonify({"error": "An error occurred while processing your request."}), 500
+        print(f"Error: {e}")
+        return jsonify({"error": "An error occurred"}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

@@ -9,29 +9,22 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # Fetch data from the 'recipes' collection
-def fetch_recipes():
-    recipes_ref = db.collection("recipes")
-    docs = recipes_ref.stream()
-    
-    training_data = []
-    
-    for doc in docs:
-        recipe = doc.to_dict()
-        ingredients = recipe.get("ingredients", [])
-        
-        # Format the training data
-        for ingredient in ingredients:
-            start_index = recipe['description'].lower().find(ingredient.lower())
-            if start_index != -1:
-                end_index = start_index + len(ingredient)
-                training_data.append((
-                    recipe['description'], 
-                    {"entities": [(start_index, end_index, "INGREDIENT")]}
-                ))
-    
-    return training_data
+def fetch_ingredients_and_recipes():
+    ingredients = set()  # Store unique ingredients
+    recipes = {}  # Map each ingredient to recipes
+
+    # Assuming your collection is called "recipes"
+    recipe_docs = db.collection("recipes").stream()
+    for doc in recipe_docs:
+        data = doc.to_dict()
+        recipe_name = data.get("name")
+        recipe_ingredients = data.get("ingredients", [])  # List of ingredients
+        for ingredient in recipe_ingredients:
+            ingredients.add(ingredient.lower())  # Normalize ingredient names
+            recipes.setdefault(ingredient.lower(), []).append(recipe_name)
+
+    return ingredients, recipes
 
 # Test the function (Optional)
 if __name__ == "__main__":
-    training_data = fetch_recipes()
-    print(training_data)
+    unique_ingredients, ingredient_to_recipes = fetch_ingredients_and_recipes()
