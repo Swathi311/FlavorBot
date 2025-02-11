@@ -20,11 +20,28 @@ const App = () => {
   
     try {
       const response = await axios.post("http://localhost:8000/process", { text: userInput });
-      const responseRecipes = response.data.recipes; // Response format: { ingredient: [recipes] }
+      const responseRecipes = response.data.recipes;
   
-      let botResponse = "Here are the recipes I found:\n";
-      for (const [ingredient, recipes] of Object.entries(responseRecipes)) {
-        botResponse += `For ${ingredient}: ${recipes.length > 0 ? recipes.join(", ") : "No recipes found."}\n`;
+      let botResponse = "";
+  
+      if (Object.keys(responseRecipes).length === 0) {
+        botResponse = "Sorry, I couldn't find any recipes for the given ingredients.";
+      } else {
+        botResponse = "Here are some recipes I found:\n\n";
+        
+        botResponse += Object.entries(responseRecipes).map(([ingredient, recipes]) => {
+          let ingredientResponse = `**Recipes with ${ingredient}:**\n`;
+          
+          ingredientResponse += recipes.map(recipe => (
+            `\n**${recipe.name}**\n` +
+            `${recipe.description}\n` +
+            `Prep Time: ${recipe.prep_time} mins | Cook Time: ${recipe.cook_time} mins\n` +
+            `Ingredients: ${recipe.ingredients.join(", ")}\n` +
+            `Instructions: ${recipe.instructions.join(" ")}\n`
+          )).join("\n");
+  
+          return ingredientResponse + "\n----------------\n";
+        }).join("\n");
       }
   
       const botMessage = { text: botResponse.trim(), sender: "bot" };
@@ -40,6 +57,8 @@ const App = () => {
   
     setUserInput("");
   };
+  
+  
   
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
