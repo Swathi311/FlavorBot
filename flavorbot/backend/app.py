@@ -35,7 +35,6 @@ def process_text():
 
         doc = nlp(user_input)
         entities = [{"text": ent.text.lower(), "label": ent.label_} for ent in doc.ents]
-        print(entities)
 
         detected_ingredients = [ent['text'] for ent in entities if ent['label'] == "INGREDIENT"]
         response_recipes = {}
@@ -44,7 +43,6 @@ def process_text():
             recipe_names = ingredient_to_recipes.get(ingredient, [])
 
             if recipe_names:
-                # Fetch full recipe details from Firestore
                 full_recipes = []
                 for recipe_name in recipe_names:
                     query = db.collection("recipes").where("name", "==", recipe_name).limit(1).stream()

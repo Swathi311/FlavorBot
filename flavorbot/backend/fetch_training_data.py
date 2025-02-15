@@ -38,7 +38,7 @@ def fetch_ingredients_and_recipes():
             batch_data = list(recipe_docs)
 
             if not batch_data:
-                break  # No more data
+                break 
 
             for doc in batch_data:
                 data = doc.to_dict()

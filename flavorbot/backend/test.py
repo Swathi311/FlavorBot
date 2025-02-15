@@ -4,9 +4,9 @@ MODEL_PATH = "./ner_model"
 
 try:
     nlp = spacy.load(MODEL_PATH)
-    print("✅ Model loaded successfully.")
+    print("Model loaded successfully.")
 except Exception as e:
-    print(f"❌ Error loading model: {e}")
+    print(f"Error loading model: {e}")
 
 
 print("Pipeline components:", nlp.pipe_names)

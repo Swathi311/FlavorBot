@@ -1,0 +1,8 @@
+[
+    {"text": "Show me recipes with {}", "start_index": 21},
+    {"text": "I want a dish with {}", "start_index": 19},
+    {"text": "What can I cook using {}?", "start_index": 22},
+    {"text": "How do I prepare a meal with {}?", "start_index": 29},
+    {"text": "I need a recipe with {}", "start_index": 21},
+    {"text": "Suggest something to cook with {}", "start_index": 31}
+]

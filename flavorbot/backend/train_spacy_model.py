@@ -1,63 +1,71 @@
 import spacy
 from spacy.training.example import Example
 import json
+import os
 
-# Load cached ingredient & recipe data
+MODEL_PATH = "./ner_model"
+
+# Load query formats from training_data.json
+with open("backend/training_data.json", "r") as f:
+    QUERY_FORMATS = json.load(f)
+
+# Load unique ingredients from cached_recipes.json
 with open("cached_recipes.json", "r") as f:
     cached_data = json.load(f)
 
-unique_ingredients = cached_data["ingredients"]
+unique_ingredients = cached_data["ingredients"]  # Assuming this has ingredient names
 
-# Create dynamic TRAIN_DATA
+#  Dynamically generate TRAIN_DATA
 TRAIN_DATA = []
-
 for ingredient in unique_ingredients:
-    TRAIN_DATA.extend([
-        (f"Show me recipes with {ingredient}", {"entities": [(21, 21 + len(ingredient), "INGREDIENT")]}),
-        (f"I want a dish with {ingredient}", {"entities": [(19, 19 + len(ingredient), "INGREDIENT")]}),
-        (f"What can I cook using {ingredient}?", {"entities": [(22, 22 + len(ingredient), "INGREDIENT")]}),
-        (f"How do I prepare a meal with {ingredient}?", {"entities": [(29, 29 + len(ingredient), "INGREDIENT")]}),
-        (f"I need a recipe with {ingredient}", {"entities": [(21, 21 + len(ingredient), "INGREDIENT")]}),
-        (f"Suggest something to cook with {ingredient}", {"entities": [(31, 31 + len(ingredient), "INGREDIENT")]}),
-    ])
+    for query in QUERY_FORMATS:
+        text = query["text"].format(ingredient)  # Insert ingredient into query
+        start = query["start_index"]
+        end = start + len(ingredient)
+        
+        TRAIN_DATA.append((text, {"entities": [(start, end, "INGREDIENT")]}))
 
-print("Training Data Sample:")
-for sample in TRAIN_DATA[:10]:  # Print first 5 examples
+#  Print sample training data
+print(" Generated Training Data Sample:")
+for sample in TRAIN_DATA[:5]:  
     print(sample)
 
-# Create a blank NLP model
-nlp = spacy.blank("en")
+#  Load existing model if available, else create a new one
+if os.path.exists(MODEL_PATH):
+    print(f"Loading existing model from {MODEL_PATH}")
+    nlp = spacy.load(MODEL_PATH)
+    optimizer = nlp.resume_training()  # Resume training
+else:
+    print("Creating a new blank model...")
+    nlp = spacy.blank("en")
+    optimizer = nlp.begin_training()
 
-# Add the NER pipeline
+#  Add the NER pipeline if not present
 if "ner" not in nlp.pipe_names:
     ner = nlp.add_pipe("ner", last=True)
 else:
     ner = nlp.get_pipe("ner")
 
-# Add labels to the NER pipeline
+#  Add labels dynamically
 for _, annotations in TRAIN_DATA:
-    for ent in annotations.get("entities"):
+    for ent in annotations["entities"]:
         ner.add_label(ent[2])
 
-# Create the optimizer
-optimizer = nlp.begin_training()
+#  Train only on new data
+n_iter = 10  # Reduce iterations for efficiency
 
-# Number of iterations
-n_iter = 30
-
-# Training loop
 for itn in range(n_iter):
     print(f"Iteration {itn + 1}/{n_iter}")
     losses = {}
 
-    for batch in spacy.util.minibatch(TRAIN_DATA, size=10):  # Larger batch size for efficiency
+    for batch in spacy.util.minibatch(TRAIN_DATA, size=10):
         for text, annotations in batch:
             doc = nlp.make_doc(text)
             example = Example.from_dict(doc, annotations)
-            nlp.update([example], losses=losses, drop=0.3)  # Dropout increased to 0.2 to prevent overfitting
+            nlp.update([example], losses=losses, drop=0.3)
 
     print(losses)
 
-# Save the trained model
-nlp.to_disk("./ner_model")
-print("Model saved to ./ner_model")
+# Save updated model
+nlp.to_disk(MODEL_PATH)
+print(f"Model updated and saved to {MODEL_PATH}")
