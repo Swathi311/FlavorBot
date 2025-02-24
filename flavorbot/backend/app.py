@@ -1,76 +1,153 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import spacy
-from flask_cors import CORS  
-from fetch_training_data import ingredient_to_recipes
-import firebase_admin
-from firebase_admin import credentials, firestore
+import json
+import os
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+import pickle
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize Firestore (Avoid multiple initializations)
-if not firebase_admin._apps:
-    cred = credentials.Certificate("backend/serviceAccountKey.json")
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
-
-# Load the trained spaCy model
-try:
-    MODEL_PATH = './ner_model'
-    nlp = spacy.load(MODEL_PATH)
-    print(f"Model loaded successfully from {MODEL_PATH}")
-except Exception as e:
-    print(f"Error loading model: {e}")
-    nlp = None  
-
-@app.route('/process', methods=['POST'])
-def process_text():
+# Load trained spaCy model
+MODEL_PATH = "./ner_model"
+if os.path.exists(MODEL_PATH):
+    print("Loading trained spaCy model...")
     try:
-        data = request.get_json()
-        user_input = data.get('text', '')
+        nlp = spacy.load(MODEL_PATH)
+    except Exception as e:
+        print(f"Error loading spaCy model: {e}")
+        nlp = None
+else:
+    print("Model not found! Make sure to train it first.")
+    nlp = None  # Prevents crashes if model is missing
 
-        if not nlp:
-            return jsonify({"error": "NER model not loaded"}), 500
+# Load cached recipes and ingredient index
+CACHE_FILE = "cached_recipes.json"
+TFIDF_CACHE_FILE = "tfidf_data.pkl"
 
-        doc = nlp(user_input)
-        entities = [{"text": ent.text.lower(), "label": ent.label_} for ent in doc.ents]
+if os.path.exists(CACHE_FILE):
+    try:
+        with open(CACHE_FILE, "r") as f:
+            cached_data = json.load(f)
+        recipes = cached_data.get("recipes", [])  # Now a list
+        ingredient_index = cached_data.get("ingredient_index", {})  # Maps ingredient -> recipe IDs
+        print(f"Loaded {len(recipes)} unique recipes and {len(ingredient_index)} indexed ingredients.")
+    except Exception as e:
+        print(f"Error loading recipe cache: {e}")
+        recipes, ingredient_index = [], {}
+else:
+    print("Recipe cache not found! Run fetch_training_data.py first.")
+    recipes, ingredient_index = [], {}
 
-        detected_ingredients = [ent['text'] for ent in entities if ent['label'] == "INGREDIENT"]
+# Load TF-IDF vectors
+if os.path.exists(TFIDF_CACHE_FILE):
+    try:
+        with open(TFIDF_CACHE_FILE, "rb") as f:
+            vectorizer, recipe_vectors = pickle.load(f)
+        print(f"Loaded TF-IDF vectors with shape {recipe_vectors.shape}.")
+    except Exception as e:
+        print(f"Error loading TF-IDF data: {e}")
+        vectorizer, recipe_vectors = None, None
+else:
+    print("TF-IDF cache not found! Run fetch_training_data.py first.")
+    vectorizer, recipe_vectors = None, None  # Prevents crashes
+
+# Function to extract ingredients using spaCy NER
+def extract_ingredients(user_input):
+    if not nlp:
+        print("Warning: NLP model is missing. No ingredients will be detected.")
+        return []
+
+    doc = nlp(user_input)
+    ingredients = [ent.text.lower() for ent in doc.ents if ent.label_ == "INGREDIENT"]
+    return ingredients
+
+# Function to find recipes by extracted ingredients
+def find_recipes_by_ingredients(detected_ingredients):
+    """Retrieve recipes based on detected ingredients using the ingredient index."""
+    if not detected_ingredients:
+        return []
+
+    recipe_ids = set()  # Avoid duplicate recipes
+    for ingredient in detected_ingredients:
+        recipe_ids.update(ingredient_index.get(ingredient, []))  # Fetch recipe IDs
+
+    # Convert IDs to actual recipes
+    return [recipe for recipe in recipes if recipe["id"] in recipe_ids]
+
+# Function to find best recipes using TF-IDF similarity
+def find_best_recipes(user_input):
+    if not vectorizer or recipe_vectors is None or recipe_vectors.shape[0] == 0:
+        print("Warning: TF-IDF data is missing or empty. No recommendations will be made.")
+        return []
+
+    # Convert user input to a TF-IDF vector
+    user_vector = vectorizer.transform([user_input])
+
+    # Compute cosine similarity
+    similarities = cosine_similarity(user_vector, recipe_vectors).flatten()
+    top_indices = similarities.argsort()[-3:][::-1]  # Highest to lowest similarity
+
+    # Filter out low-similarity matches
+    valid_indices = [i for i in top_indices if similarities[i] > 0.1]
+
+    if not valid_indices:
+        print("No relevant recipes found.")
+        return []
+
+    return [recipes[i] for i in valid_indices if i < len(recipes)] 
+
+
+@app.route("/process", methods=["POST"])
+def process_query():
+    try:
+        data = request.json
+        user_input = data.get("text", "").strip()
+
+        if not user_input:
+            return jsonify({"error": "Empty input"}), 400
+
+        print(f"User Query: {user_input}")
+
+        # Extract detected ingredients
+        detected_ingredients = extract_ingredients(user_input)
+        print(f"Detected Ingredients: {detected_ingredients}")
+
+        # Get recipes by ingredients
+        ingredient_based_recipes = find_recipes_by_ingredients(detected_ingredients)
+
+        # Get recommended recipes (TF-IDF)
+        best_recipes = find_best_recipes(user_input)
+
+        # Combine and remove duplicates
+        all_recipes = {r["id"]: r for r in ingredient_based_recipes + best_recipes}.values()
+
+        if not all_recipes:
+            print("No matching recipes found.")
+            return jsonify({"recipes": {}, "message": "No matching recipes found."})
+
+        # Format response
         response_recipes = {}
+        key_ingredient = detected_ingredients[0] if detected_ingredients else "General"
 
-        for ingredient in detected_ingredients:
-            recipe_names = ingredient_to_recipes.get(ingredient, [])
+        for recipe in all_recipes:
+            response_recipes.setdefault(key_ingredient, []).append({
+                "name": recipe["name"],
+                "description": recipe["description"],
+                "ingredients": recipe["ingredients"],  # Already a list
+                "instructions": recipe["instructions"],
+                "prep_time": recipe["prep_time"],
+                "cook_time": recipe["cook_time"],
+                "image_url": recipe.get("image_url", "")
+            })
 
-            if recipe_names:
-                full_recipes = []
-                for recipe_name in recipe_names:
-                    query = db.collection("recipes").where("name", "==", recipe_name).limit(1).stream()
-                    for doc in query:
-                        recipe_data = doc.to_dict()
-                        full_recipes.append({
-                            "name": recipe_data.get("name"),
-                            "description": recipe_data.get("description", "No description available."),
-                            "ingredients": recipe_data.get("ingredients", []),
-                            "instructions": recipe_data.get("instructions", []),
-                            "prep_time": recipe_data.get("prep_time", "Unknown"),
-                            "cook_time": recipe_data.get("cook_time", "Unknown"),
-                            "image_url": recipe_data.get("image_url", "")
-                        })
-                
-                response_recipes[ingredient] = full_recipes
-
-        return jsonify({
-    "recipes": {
-        ingredient: [recipe for recipe in full_recipes]
-        for ingredient, full_recipes in response_recipes.items()
-    }
-})
-
+        return jsonify({"recipes": response_recipes})
 
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"error": "An error occurred"}), 500
+        print(f"ERROR: {e}")
+        return jsonify({"error": "SORRY, there was an error processing your request."}), 500
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True, port=8000)
