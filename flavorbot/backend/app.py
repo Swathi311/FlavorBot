@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load trained spaCy model
-MODEL_PATH = "./ner_model"
+MODEL_PATH = "../ner_model"
 if os.path.exists(MODEL_PATH):
     print("Loading trained spaCy model...")
     try:
