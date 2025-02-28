@@ -11,7 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load trained spaCy model
-MODEL_PATH = "./ner_model"
+MODEL_PATH = "../ner_model"
 if os.path.exists(MODEL_PATH):
     print("Loading trained spaCy model...")
     try:
@@ -24,8 +24,8 @@ else:
     nlp = None  # Prevents crashes if model is missing
 
 # Load cached recipes and ingredient index
-CACHE_FILE = "cached_recipes.json"
-TFIDF_CACHE_FILE = "tfidf_data.pkl"
+CACHE_FILE = "../cached_recipes.json"
+TFIDF_CACHE_FILE = "../tfidf_data.pkl"
 
 if os.path.exists(CACHE_FILE):
     try:
@@ -53,6 +53,17 @@ if os.path.exists(TFIDF_CACHE_FILE):
 else:
     print("TF-IDF cache not found! Run fetch_training_data.py first.")
     vectorizer, recipe_vectors = None, None  # Prevents crashes
+
+# Function to classify user intent
+def classify_intent(user_input):
+    if not nlp or "textcat" not in nlp.pipe_names:
+        print("Warning: Intent classification model is missing.")
+        return "UNKNOWN"
+    
+    doc = nlp(user_input)
+    scores = doc.cats
+    intent = max(scores, key=scores.get) if scores else "UNKNOWN"
+    return intent
 
 # Function to extract ingredients using spaCy NER
 def extract_ingredients(user_input):
@@ -99,7 +110,6 @@ def find_best_recipes(user_input):
 
     return [recipes[i] for i in valid_indices if i < len(recipes)] 
 
-
 @app.route("/process", methods=["POST"])
 def process_query():
     try:
@@ -111,6 +121,13 @@ def process_query():
 
         print(f"User Query: {user_input}")
 
+        # Classify intent
+        intent = classify_intent(user_input)
+        print(f"Detected Intent: {intent}")
+
+        if intent == "GREETING":
+            return jsonify({"message": "Hello! How can I help you with recipes today?"})
+        
         # Extract detected ingredients
         detected_ingredients = extract_ingredients(user_input)
         print(f"Detected Ingredients: {detected_ingredients}")

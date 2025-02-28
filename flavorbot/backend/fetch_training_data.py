@@ -6,8 +6,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import pickle  
 
-CACHE_FILE = "cached_recipes.json"
-TFIDF_CACHE_FILE = "tfidf_data.pkl"
+CACHE_FILE = "../cached_recipes.json"
+TFIDF_CACHE_FILE = "../tfidf_data.pkl"
 
 # Function to fetch and cache data from Firebase
 def fetch_recipes():
@@ -24,7 +24,7 @@ def fetch_recipes():
 
     # Initialize Firebase if not already initialized
     if not firebase_admin._apps:
-        cred = credentials.Certificate("backend/serviceAccountKey.json")
+        cred = credentials.Certificate("serviceAccountKey.json")
         firebase_admin.initialize_app(cred)
 
     db = firestore.client()
