@@ -6,8 +6,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import pickle  
 
-CACHE_FILE = "../cached_recipes.json"
-TFIDF_CACHE_FILE = "../tfidf_data.pkl"
+CACHE_FILE = "cached_recipes.json"
+TFIDF_CACHE_FILE = "tfidf_data.pkl"
 
 # Function to fetch and cache data from Firebase
 def fetch_recipes():
@@ -94,6 +94,63 @@ def fetch_recipes():
     print("Data fetching complete and cached.")
     return recipes, ingredient_index
 
+def fetch_and_cache_substituents():
+    """Fetch substituents from Firebase in batches and cache them, avoiding duplicate storage."""
+
+    CACHE_FILE = "cached_substituents.json"
+
+    # Load from cache if it exists
+    if os.path.exists(CACHE_FILE):
+        print("Loading cached substituents data instead of fetching from Firebase...")
+        with open(CACHE_FILE, "r") as f:
+            cached_data = json.load(f)
+        return cached_data
+
+    print("Fetching substituents data from Firebase...")
+
+    # Initialize Firebase if not already initialized
+    if not firebase_admin._apps:
+        cred = credentials.Certificate("backend/serviceAccountKey.json")
+        firebase_admin.initialize_app(cred)
+
+    db = firestore.client()
+    BATCH_SIZE = 50
+    substituents_data = {}
+    last_doc = None
+
+    while True:
+        try:
+            query = db.collection("substituents").limit(BATCH_SIZE)
+
+            if last_doc:
+                query = query.start_after(last_doc)
+
+            substituent_docs = query.stream()
+            batch_data = list(substituent_docs)
+
+            if not batch_data:
+                break
+
+            for doc in batch_data:
+                data = doc.to_dict()
+                ingredient = doc.id.lower()  # Document ID is the ingredient name
+                substitutes = data.get("substitutes", [])
+                substituents_data[ingredient] = substitutes
+
+            last_doc = batch_data[-1]
+            print(f"Fetched {len(batch_data)} substituents...")
+
+        except firebase_admin.exceptions.FirebaseError as e:
+            print(f"Error fetching substituents data: {e}")
+            break
+
+    # Store cache
+    with open(CACHE_FILE, "w") as f:
+        json.dump(substituents_data, f, indent=4)
+
+    print(f"Cached {len(substituents_data)} substituents successfully.")
+    return substituents_data
+
 
 # Function to compute TF-IDF vectors for recipes
 def compute_tfidf_vectors(recipes):
@@ -136,4 +193,5 @@ def compute_tfidf_vectors(recipes):
 
 # Fetch data and process
 recipes, ingredient_index = fetch_recipes()
+substituents = fetch_and_cache_substituents()
 vectorizer, recipe_vectors = compute_tfidf_vectors(recipes)

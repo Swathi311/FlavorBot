@@ -6,7 +6,6 @@ import os
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
-
 app = Flask(__name__)
 CORS(app)
 
@@ -54,23 +53,15 @@ else:
     print("TF-IDF cache not found! Run fetch_training_data.py first.")
     vectorizer, recipe_vectors = None, None  # Prevents crashes
 
-# Function to classify user intent
-def classify_intent(user_input):
-    if not nlp or "textcat" not in nlp.pipe_names:
-        print("Warning: Intent classification model is missing.")
-        return "UNKNOWN"
-    
-    doc = nlp(user_input)
-    scores = doc.cats
-    intent = max(scores, key=scores.get) if scores else "UNKNOWN"
-    return intent
-
+# Load cached substituents
+SUBSTITUENTS_CACHE_FILE = "../cached_substituents.json"
+with open(SUBSTITUENTS_CACHE_FILE, "r") as f:
+    substituents_data = json.load(f)
 # Function to extract ingredients using spaCy NER
 def extract_ingredients(user_input):
     if not nlp:
         print("Warning: NLP model is missing. No ingredients will be detected.")
         return []
-
     doc = nlp(user_input)
     ingredients = [ent.text.lower() for ent in doc.ents if ent.label_ == "INGREDIENT"]
     return ingredients
@@ -80,11 +71,9 @@ def find_recipes_by_ingredients(detected_ingredients):
     """Retrieve recipes based on detected ingredients using the ingredient index."""
     if not detected_ingredients:
         return []
-
     recipe_ids = set()  # Avoid duplicate recipes
     for ingredient in detected_ingredients:
         recipe_ids.update(ingredient_index.get(ingredient, []))  # Fetch recipe IDs
-
     # Convert IDs to actual recipes
     return [recipe for recipe in recipes if recipe["id"] in recipe_ids]
 
@@ -93,78 +82,60 @@ def find_best_recipes(user_input):
     if not vectorizer or recipe_vectors is None or recipe_vectors.shape[0] == 0:
         print("Warning: TF-IDF data is missing or empty. No recommendations will be made.")
         return []
-
-    # Convert user input to a TF-IDF vector
     user_vector = vectorizer.transform([user_input])
-
-    # Compute cosine similarity
     similarities = cosine_similarity(user_vector, recipe_vectors).flatten()
-    top_indices = similarities.argsort()[-3:][::-1]  # Highest to lowest similarity
-
-    # Filter out low-similarity matches
+    top_indices = similarities.argsort()[-1:][::-1]  # Highest to lowest similarity
     valid_indices = [i for i in top_indices if similarities[i] > 0.1]
-
     if not valid_indices:
         print("No relevant recipes found.")
         return []
-
     return [recipes[i] for i in valid_indices if i < len(recipes)] 
+
+def get_substitutes(ingredient):
+    return substituents_data.get(ingredient.lower(), [])
 
 @app.route("/process", methods=["POST"])
 def process_query():
     try:
         data = request.json
-        user_input = data.get("text", "").strip()
+        user_input = data.get("text", "").strip().lower()
 
-        if not user_input:
-            return jsonify({"error": "Empty input"}), 400
+        if "yes" in user_input:
+            return jsonify({"message": "Great! Enjoy cooking your chosen recipe."})
 
-        print(f"User Query: {user_input}")
+        if "no" in user_input:
+            return jsonify({"message": "Which ingredient are you missing?"})
 
-        # Classify intent
-        intent = classify_intent(user_input)
-        print(f"Detected Intent: {intent}")
+        if "missing" in user_input:
+            missing_ingredient = user_input.split("missing")[-1].strip()
+            substitutes = get_substitutes(missing_ingredient)
+            if substitutes:
+                return jsonify({"message": f"Here are some substitutes for '{missing_ingredient}': {', '.join(substitutes)}"})
+            else:
+                return jsonify({"message": f"Sorry, I couldn't find substitutes for '{missing_ingredient}'."})
 
-        if intent == "GREETING":
-            return jsonify({"message": "Hello! How can I help you with recipes today?"})
-        
-        # Extract detected ingredients
         detected_ingredients = extract_ingredients(user_input)
-        print(f"Detected Ingredients: {detected_ingredients}")
-
-        # Get recipes by ingredients
         ingredient_based_recipes = find_recipes_by_ingredients(detected_ingredients)
-
-        # Get recommended recipes (TF-IDF)
         best_recipes = find_best_recipes(user_input)
-
-        # Combine and remove duplicates
         all_recipes = {r["id"]: r for r in ingredient_based_recipes + best_recipes}.values()
 
         if not all_recipes:
-            print("No matching recipes found.")
             return jsonify({"recipes": {}, "message": "No matching recipes found."})
 
-        # Format response
         response_recipes = {}
-        key_ingredient = detected_ingredients[0] if detected_ingredients else "General"
-
         for recipe in all_recipes:
-            response_recipes.setdefault(key_ingredient, []).append({
+            response_recipes.setdefault("General", []).append({
                 "name": recipe["name"],
                 "description": recipe["description"],
-                "ingredients": recipe["ingredients"],  # Already a list
+                "ingredients": recipe["ingredients"],
                 "instructions": recipe["instructions"],
                 "prep_time": recipe["prep_time"],
                 "cook_time": recipe["cook_time"],
-                "image_url": recipe.get("image_url", "")
             })
 
-        return jsonify({"recipes": response_recipes})
-
+        return jsonify({"recipes": response_recipes, "message": "Do you have all the ingredients?"})
     except Exception as e:
         print(f"ERROR: {e}")
         return jsonify({"error": "SORRY, there was an error processing your request."}), 500
-
 if __name__ == "__main__":
     app.run(debug=True, port=8000)

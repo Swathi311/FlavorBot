@@ -21,31 +21,33 @@ const App = () => {
 
     try {
       const response = await axios.post("http://127.0.0.1:8000/process", { text: userInput });
+      const responseData = response.data;
+      
+      let botResponse = responseData.message || "Sorry, there was an error processing your request.";
 
-      console.log("API Response:", response.data); // Debugging
+      if (responseData.recipes) {
+        const responseRecipes = Object.values(responseData.recipes).flat();
+        if (responseRecipes.length > 0) {
+          botResponse = `*Here is the top recipe I found:*\n\n` +
+            responseRecipes.slice(0, 3).map((recipe, index) => `
+**${index + 1}. ${recipe.name}**
+*${recipe.description}*
 
-      // Extracting recipes correctly
-      const responseRecipes = Object.values(response.data.recipes || {}).flat();
+**Prep Time:** ${recipe.prep_time} mins | **Cook Time:** ${recipe.cook_time} mins
 
-      let botResponse = "";
+**Ingredients:**
+• ${recipe.ingredients.join("\n• ")}
 
-      if (responseRecipes.length === 0) {
-        botResponse = "Sorry, I couldn't find any recipes for your query.";
-      } else {
-        botResponse = "**Here are the top 3 recipes I found:**\n\n" +
-          responseRecipes.slice(0, 3).map((recipe, index) => (
-            `**${index + 1}. ${recipe.name}**\n` +
-            `*${recipe.description}*\n\n` +
-            `**Prep Time:** ${recipe.prep_time} mins | **Cook Time:** ${recipe.cook_time} mins\n\n` +
-            `**Ingredients:**\n• ${recipe.ingredients.join("\n• ")}\n\n` +
-            `**Instructions:**\n${recipe.instructions.map((step, idx) => `${idx + 1}. ${step}`).join("\n")}\n\n` +
-            "--------------------\n"
-          )).join("");
+**Instructions:**
+${recipe.instructions.map((step, idx) => `${idx + 1}. ${step}`).join("\n")}
+
+--------------------
+`).join("") + "\n*Do you have all the ingredients?* (Yes/No)";
+        }
       }
 
       const botMessage = { text: botResponse.trim(), sender: "bot" };
       setMessages((prev) => [...prev, botMessage]);
-
     } catch (error) {
       console.error("Error processing text:", error);
       const botMessage = { text: "Sorry, there was an error processing your request.", sender: "bot" };

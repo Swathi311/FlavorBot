@@ -7,11 +7,11 @@ import random
 MODEL_PATH = "../ner_model"
 
 # Load query formats from training_data.json
-with open("training_data.json", "r") as f:
+with open("backend/training_data.json", "r") as f:
     QUERY_FORMATS = json.load(f)
 
 # Load unique ingredients from cached_recipes.json
-with open("../cached_recipes.json", "r") as f:
+with open("cached_recipes.json", "r") as f:
     cached_data = json.load(f)
 
 # Extract unique ingredients from recipes
@@ -40,42 +40,29 @@ print("Generated Training Data Sample:")
 for sample in TRAIN_DATA[:5]:  
     print(sample)
 
+# Load existing model if available, else create a new one
 if os.path.exists(MODEL_PATH):
     print(f"Loading existing model from {MODEL_PATH}")
     nlp = spacy.load(MODEL_PATH)
+    optimizer = nlp.resume_training()  # Resume training
 else:
     print("Creating a new blank model...")
     nlp = spacy.blank("en")
+    ner = nlp.add_pipe("ner", last=True)  # Ensure NER pipeline exists
 
-# Ensure NER pipeline exists
+# Ensure NER pipeline is available
 if "ner" not in nlp.pipe_names:
     ner = nlp.add_pipe("ner", last=True)
 else:
     ner = nlp.get_pipe("ner")
 
-# Ensure Text Classification exists
-if "textcat" not in nlp.pipe_names:
-    textcat = nlp.add_pipe("textcat", last=True)
-else:
-    textcat = nlp.get_pipe("textcat")
+# Add labels dynamically
+for _, annotations in TRAIN_DATA:
+    for ent in annotations["entities"]:
+        ner.add_label(ent[2])
 
-textcat.add_label("FIND_RECIPE")
-textcat.add_label("SUBSTITUTION")
-textcat.add_label("GREETING")
-
-# ⚠️ **IMPORTANT**: Initialize the model before training
-nlp.initialize()
-
-
-# Sample training data for intent classification
-TEXTCAT_TRAIN_DATA = [
-    ("Show me a recipe for pasta", {"cats": {"FIND_RECIPE": 1.0, "SUBSTITUTION": 0.0, "GREETING": 0.0}}),
-    ("I don’t have butter, what can I use?", {"cats": {"FIND_RECIPE": 0.0, "SUBSTITUTION": 1.0, "GREETING": 0.0}}),
-    ("Hey there!", {"cats": {"FIND_RECIPE": 0.0, "SUBSTITUTION": 0.0, "GREETING": 1.0}})
-]
-
-# Training iterations
-n_iter = 10
+# Train model
+n_iter = 10  # Reduce iterations for efficiency
 
 for itn in range(n_iter):
     print(f"Iteration {itn + 1}/{n_iter}")
@@ -86,18 +73,11 @@ for itn in range(n_iter):
     for text, annotations in TRAIN_DATA:
         doc = nlp.make_doc(text)
         example = Example.from_dict(doc, annotations)
+
         try:
             nlp.update([example], losses=losses, drop=0.3)
         except Exception as e:
-            print(f"Error during NER training: {e}")
-    
-    for text, annotations in TEXTCAT_TRAIN_DATA:
-        doc = nlp.make_doc(text)
-        example = Example.from_dict(doc, annotations)
-        try:
-            nlp.update([example], losses=losses, drop=0.3)
-        except Exception as e:
-            print(f"Error during TextCat training: {e}")
+            print(f"Error during training: {e}")
     
     print(f"Iteration {itn + 1} Losses: {losses}")
 

@@ -1,0 +1,189 @@
+{
+    "baking powder": [
+        "baking soda + vinegar",
+        "cream of tartar + baking soda"
+    ],
+    "baking soda": [
+        "baking powder (use 3x more)",
+        "potassium bicarbonate"
+    ],
+    "beef": [
+        "lentils",
+        "mushrooms",
+        "seitan"
+    ],
+    "bread crumbs": [
+        "crushed crackers",
+        "rolled oats",
+        "panko"
+    ],
+    "broth": [
+        "water + bouillon",
+        "vegetable broth",
+        "wine"
+    ],
+    "butter": [
+        "oil",
+        "margarine",
+        "ghee",
+        "applesauce"
+    ],
+    "cheese": [
+        "nutritional yeast",
+        "tofu",
+        "vegan cheese"
+    ],
+    "chili powder": [
+        "cayenne pepper",
+        "paprika",
+        "hot sauce"
+    ],
+    "chocolate": [
+        "carob powder",
+        "cocoa powder + oil",
+        "dark chocolate"
+    ],
+    "cinnamon": [
+        "nutmeg",
+        "allspice",
+        "cardamom"
+    ],
+    "coconut milk": [
+        "almond milk + coconut extract",
+        "yogurt"
+    ],
+    "coffee": [
+        "chicory root",
+        "matcha",
+        "dandelion tea"
+    ],
+    "cornstarch": [
+        "flour",
+        "arrowroot powder",
+        "potato starch"
+    ],
+    "cream": [
+        "yogurt",
+        "coconut cream",
+        "evaporated milk",
+        "silken tofu"
+    ],
+    "fish": [
+        "tofu",
+        "mushrooms",
+        "eggplant",
+        "hearts of palm"
+    ],
+    "flour": [
+        "almond flour",
+        "coconut flour",
+        "oat flour",
+        "cornstarch"
+    ],
+    "garlic": [
+        "garlic powder",
+        "shallots",
+        "onion"
+    ],
+    "ginger": [
+        "ground ginger",
+        "allspice",
+        "cinnamon"
+    ],
+    "honey": [
+        "maple syrup",
+        "agave nectar",
+        "molasses"
+    ],
+    "lemon juice": [
+        "lime juice",
+        "vinegar",
+        "citric acid"
+    ],
+    "mayonnaise": [
+        "yogurt",
+        "hummus",
+        "avocado puree"
+    ],
+    "milk": [
+        "almond milk",
+        "soy milk",
+        "coconut milk",
+        "water"
+    ],
+    "mushrooms": [
+        "eggplant",
+        "zucchini",
+        "jackfruit"
+    ],
+    "mustard": [
+        "wasabi",
+        "horseradish",
+        "turmeric + vinegar"
+    ],
+    "nuts": [
+        "seeds",
+        "coconut flakes",
+        "oats"
+    ],
+    "oil": [
+        "butter",
+        "margarine",
+        "yogurt",
+        "mashed bananas"
+    ],
+    "onion": [
+        "shallots",
+        "leeks",
+        "green onions"
+    ],
+    "pasta": [
+        "zucchini noodles",
+        "spaghetti squash",
+        "shirataki noodles"
+    ],
+    "peanut butter": [
+        "almond butter",
+        "cashew butter",
+        "sunflower seed butter"
+    ],
+    "potato": [
+        "sweet potato",
+        "cauliflower",
+        "turnips"
+    ],
+    "soy sauce": [
+        "coconut aminos",
+        "tamari",
+        "worcestershire sauce"
+    ],
+    "tofu": [
+        "paneer",
+        "seitan",
+        "tempeh"
+    ],
+    "tomato sauce": [
+        "pureed tomatoes",
+        "tomato paste + water",
+        "red pepper puree"
+    ],
+    "vanilla extract": [
+        "almond extract",
+        "maple syrup",
+        "honey"
+    ],
+    "vinegar": [
+        "lemon juice",
+        "lime juice",
+        "apple cider vinegar"
+    ],
+    "wine": [
+        "grape juice",
+        "broth",
+        "vinegar + water"
+    ],
+    "yogurt": [
+        "sour cream",
+        "buttermilk"
+    ]
+}
